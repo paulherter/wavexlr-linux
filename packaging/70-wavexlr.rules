@@ -1,0 +1,2 @@
+# Lets the logged-in user talk to the Elgato Wave XLR control interface (Wave XLR for Linux)
+SUBSYSTEM=="usb", ATTR{idVendor}=="0fd9", ATTR{idProduct}=="007d", TAG+="uaccess"

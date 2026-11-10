@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Wave XLR
+GenericName=Microphone interface controls
+Comment=Controls and level memory for the Elgato Wave XLR
+Exec=wavexlr
+Icon=wavexlr
+Terminal=false
+Categories=AudioVideo;Audio;Mixer;
+Keywords=Elgato;Wave;XLR;microphone;
+StartupNotify=false

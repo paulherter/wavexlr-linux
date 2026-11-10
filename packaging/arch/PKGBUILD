@@ -1,0 +1,33 @@
+# Maintainer: set before publishing
+pkgname=wavexlr-linux
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='Tiny tray app that keeps and controls the levels of the Elgato Wave XLR (unofficial)'
+arch=('x86_64')
+url='https://github.com/OWNER/wavexlr-linux'  # set when the repository is public
+license=('MIT')
+depends=('alsa-lib' 'alsa-utils' 'libpulse' 'libxkbcommon' 'wayland' 'libglvnd')
+makedepends=('cargo')
+source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+prepare() {
+    cd "$srcdir/$pkgname-$pkgver"
+    cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+    cd "$srcdir/$pkgname-$pkgver"
+    cargo build --release --frozen
+}
+
+package() {
+    cd "$srcdir/$pkgname-$pkgver"
+    install -Dm755 target/release/wavexlr "$pkgdir/usr/bin/wavexlr"
+    install -Dm644 packaging/70-wavexlr.rules "$pkgdir/usr/lib/udev/rules.d/70-wavexlr.rules"
+    install -Dm644 packaging/wavexlr.desktop "$pkgdir/usr/share/applications/wavexlr.desktop"
+    install -Dm644 packaging/wavexlr-autostart.desktop "$pkgdir/etc/xdg/autostart/wavexlr.desktop"
+    install -Dm644 packaging/wavexlr.service "$pkgdir/usr/lib/systemd/user/wavexlr.service"
+    install -Dm644 assets/wavexlr.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/wavexlr.svg"
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

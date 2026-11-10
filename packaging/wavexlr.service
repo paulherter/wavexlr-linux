@@ -1,0 +1,11 @@
+# Optional: restore levels without a tray (headless). Not needed when the autostart entry is used.
+[Unit]
+Description=Wave XLR level memory
+After=graphical-session.target
+
+[Service]
+ExecStart=wavexlr --headless
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

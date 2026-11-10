@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Wave XLR
+Comment=Restores the Wave XLR levels and shows the tray icon
+Exec=wavexlr --hidden
+Icon=wavexlr
+Terminal=false
+X-KDE-autostart-after=panel
+X-GNOME-Autostart-enabled=true
