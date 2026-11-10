@@ -44,6 +44,7 @@ if [[ "${1:-}" == "--uninstall" ]]; then
     done
     restart_wireplumber
     if [[ -f "$rule" ]]; then
+        say "One password is needed to remove the USB permission of the Wave XLR."
         as_root rm -f "$rule" && as_root udevadm control --reload || true
     fi
     [[ "${2:-}" == "--purge" ]] && rm -rf "$config/wavexlr"

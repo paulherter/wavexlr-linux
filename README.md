@@ -23,6 +23,7 @@ USB permission of the device. Run the same command again to update. To remove ev
 ```sh
 curl -fsSL https://github.com/paulherter/wavexlr-linux/releases/latest/download/install.sh | bash -s -- --uninstall
 ```
+(with wget: `wget -qO- https://github.com/paulherter/wavexlr-linux/releases/latest/download/install.sh | bash -s -- --uninstall`)
 On GNOME there is no tray: open "Wave XLR" from the app grid when you need the window.
 
 ![The app, dark and light](docs/screenshots.png)
