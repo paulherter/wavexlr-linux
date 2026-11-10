@@ -1,5 +1,5 @@
 //! The Wave XLR window: an egui process that is a thin client of the daemon socket (see `ipc.rs`).
-//! It paints every control itself , runs the live meter through `parecord` while the device
+//! It paints every control itself, runs the live meter through libpulse-simple (loaded at runtime) while the device
 //! is ready, and has a `--demo` mode with fake data to check the look without the device.
 
 mod anim;
@@ -80,6 +80,9 @@ pub fn parse_args(args: &[String]) -> Options {
 
 pub fn run() {
     let args: Vec<String> = std::env::args().collect();
+    if args.iter().any(|a| a == "--meter-probe") {
+        std::process::exit(meter::probe());
+    }
     let options = parse_args(&args);
     let zoom = zoom_from_env();
     let size = size_from_env().unwrap_or(WINDOW);
@@ -455,7 +458,7 @@ impl App {
             let wake = self.ctx.clone();
             self.live_meter = Some(LiveMeter::start(move || wake.request_repaint()));
         } else if !want_live_meter {
-            self.live_meter = None; // dropping it kills parecord
+            self.live_meter = None; // dropping it stops the reader thread (waits at most 200 ms)
         }
         if !screen.is_ready() {
             self.ball.reset();

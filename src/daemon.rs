@@ -238,7 +238,7 @@ impl Window {
         if self.running() {
             return;
         }
-        // Own process group, so closing the window also ends helpers it started (the meter's parecord).
+        // Own process group, so closing the window also ends any helper it started.
         match std::process::Command::new(own_executable()).arg("window").process_group(0).spawn() {
             Ok(child) => self.child = Some(child),
             Err(error) => eprintln!("wavexlr: cannot start the window: {error}"),

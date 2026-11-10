@@ -17,8 +17,8 @@ cargo build --release
 cargo test
 ./target/release/wavexlr window --demo
 ```
-Needs Rust and the `alsa-lib` headers. Install for your user with `./install.sh` (one sudo for the USB rule), remove with
-`./install.sh --uninstall`.
+Needs Rust and the `alsa-lib` headers. Install for your user with `./install-from-source.sh` (one sudo for the USB rule), remove with
+`./install-from-source.sh --uninstall`.
 
 ## How the device is controlled
 The Wave XLR (`0fd9:007d`) is a USB audio device plus a vendor interface (3) for its settings. The kernel's

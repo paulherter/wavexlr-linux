@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Wave XLR for Linux: install for the current user. Builds from source (needs Rust), asks for sudo once for the USB rule.
-#   ./install.sh               install or update
-#   ./install.sh --uninstall   remove everything (add --purge to delete the saved levels too)
+#   ./install-from-source.sh               install or update
+#   ./install-from-source.sh --uninstall   remove everything (add --purge to delete the saved levels too)
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -42,13 +42,12 @@ fi
 missing=""
 command -v cargo >/dev/null || missing="Rust (cargo)"
 command -v amixer >/dev/null || missing="$missing alsa-utils"
-command -v parecord >/dev/null || missing="$missing libpulse/pulseaudio-utils (for the level meter)"
 pkg-config --exists alsa 2>/dev/null || missing="$missing alsa-lib headers"
 if [[ -n "$missing" ]]; then
     echo "Missing:$missing" >&2
-    if command -v pacman >/dev/null; then echo "Install with: sudo pacman -S rust alsa-lib alsa-utils libpulse" >&2
-    elif command -v apt >/dev/null; then echo "Install with: sudo apt install cargo libasound2-dev alsa-utils pulseaudio-utils pkg-config" >&2
-    elif command -v dnf >/dev/null; then echo "Install with: sudo dnf install cargo alsa-lib-devel alsa-utils pulseaudio-utils pkgconf" >&2
+    if command -v pacman >/dev/null; then echo "Install with: sudo pacman -S rust alsa-lib alsa-utils" >&2
+    elif command -v apt >/dev/null; then echo "Install with: sudo apt install cargo libasound2-dev alsa-utils pkg-config" >&2
+    elif command -v dnf >/dev/null; then echo "Install with: sudo dnf install cargo alsa-lib-devel alsa-utils pkgconf" >&2
     fi
     exit 1
 fi
