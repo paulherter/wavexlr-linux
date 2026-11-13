@@ -9,11 +9,12 @@ mod tray;
 mod window;
 
 const USAGE: &str = "\
-Usage: wavexlr [--hidden | --headless | window | --version]
+Usage: wavexlr [--hidden | --headless | window | reconnect | --version]
 
   (no argument)  start the tray app and open the window
   --hidden       start in the tray without opening the window (autostart)
   --headless     only restore and save the levels, no tray, no window
+  reconnect      reset the USB connection of the Wave XLR (like replugging it)
   window         the window process (started by the tray app)
   --version      print the version";
 
@@ -27,6 +28,13 @@ fn main() {
             window::run();
             0
         }
+        ["reconnect"] => match transport::reset_usb() {
+            Ok(()) => 0,
+            Err(error) => {
+                eprintln!("wavexlr: {error}");
+                1
+            }
+        },
         ["--version" | "-V"] => {
             println!("wavexlr {}", env!("CARGO_PKG_VERSION"));
             0

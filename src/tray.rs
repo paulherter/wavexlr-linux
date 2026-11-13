@@ -15,6 +15,7 @@ pub enum TrayAction {
     ToggleWindow,
     OpenWindow,
     SetMuted(bool),
+    Reconnect,
     Quit,
 }
 
@@ -368,6 +369,12 @@ impl ksni::Tray for WaveTray {
             StandardItem {
                 label: "Open window".into(),
                 activate: Box::new(|tray: &mut Self| (tray.actions)(TrayAction::OpenWindow)),
+                ..Default::default()
+            }
+            .into(),
+            StandardItem {
+                label: "Reconnect Wave XLR".into(),
+                activate: Box::new(|tray: &mut Self| (tray.actions)(TrayAction::Reconnect)),
                 ..Default::default()
             }
             .into(),

@@ -92,6 +92,9 @@ const USBDEVFS_CONTROL: u32 = ioc(3, 0, std::mem::size_of::<CtrlTransfer>());
 /// _IOR('U', 15, unsigned int)
 const USBDEVFS_CLAIMINTERFACE: u32 = ioc(2, 15, std::mem::size_of::<u32>());
 
+/// _IO('U', 20)
+const USBDEVFS_RESET: u32 = ioc(0, 20, 0);
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct UsbLocation {
     /// e.g. "1-9.4.2"
@@ -131,6 +134,25 @@ pub fn find_usb() -> Option<UsbLocation> {
     None
 }
 
+/// Resets the device over usbfs, like unplugging and replugging the cable. The audio driver and the levels
+/// come back on their own afterwards.
+pub fn reset_usb() -> Result<(), DeviceError> {
+    let location = find_usb().ok_or_else(|| DeviceError("the Wave XLR is not connected".into()))?;
+    let file = fs::OpenOptions::new().read(true).write(true).open(&location.devnode).map_err(|error| {
+        if error.kind() == io::ErrorKind::PermissionDenied {
+            DeviceError(PERMISSION_HINT.into())
+        } else {
+            DeviceError(format!("cannot open {}: {error}", location.devnode))
+        }
+    })?;
+    // SAFETY: valid fd; USBDEVFS_RESET takes no argument.
+    let result = unsafe { libc::ioctl(file.as_raw_fd(), USBDEVFS_RESET as _) };
+    if result < 0 {
+        return Err(DeviceError(format!("cannot reset the device: {}", io::Error::last_os_error())));
+    }
+    Ok(())
+}
+
 /// bcdDevice "0135" is firmware 1.3.5 (major, minor, patch). Any other format is shown as it is.
 pub fn format_firmware(bcd: &str) -> String {
     let nums: Vec<u32> = bcd.chars().filter_map(|c| c.to_digit(10)).collect();
@@ -166,6 +188,54 @@ pub fn find_alsa_card() -> Option<u32> {
         }
     }
     None
+}
+
+/// How long playback may stand still before the device counts as stuck, and how long to leave it alone after a reset.
+const STALL_SECONDS: f64 = 8.0;
+const RESET_COOLDOWN_SECONDS: f64 = 60.0;
+
+/// (state is RUNNING, hw_ptr) from /proc/asound/cardN/pcm0p/sub0/status.
+fn parse_playback_status(text: &str) -> (bool, Option<u64>) {
+    let field = |name: &str| text.lines().find_map(|line| line.strip_prefix(name)?.trim_start().strip_prefix(':')).map(str::trim);
+    let running = field("state") == Some("RUNNING");
+    let hw_ptr = field("hw_ptr").and_then(|value| value.parse().ok());
+    (running, hw_ptr)
+}
+
+/// Notices a Wave XLR whose audio stream is running but no longer consumed (the output goes silent while everything
+/// looks normal). Reports true once per stall, at most once per cooldown.
+#[derive(Default)]
+pub struct StallWatch {
+    last_ptr: Option<u64>,
+    moved_at: f64,
+    quiet_until: f64,
+    next_check: f64,
+}
+
+impl StallWatch {
+    pub fn stalled(&mut self, now: f64) -> bool {
+        if now < self.next_check {
+            return false;
+        }
+        self.next_check = now + 1.0;
+        let status = find_alsa_card().and_then(|card| fs::read_to_string(format!("/proc/asound/card{card}/pcm0p/sub0/status")).ok());
+        let (running, hw_ptr) = status.as_deref().map(parse_playback_status).unwrap_or((false, None));
+        let Some(ptr) = hw_ptr.filter(|_| running) else {
+            self.last_ptr = None;
+            return false;
+        };
+        if self.last_ptr != Some(ptr) {
+            self.last_ptr = Some(ptr);
+            self.moved_at = now;
+            return false;
+        }
+        if now - self.moved_at >= STALL_SECONDS && now >= self.quiet_until {
+            self.quiet_until = now + RESET_COOLDOWN_SECONDS;
+            self.moved_at = now;
+            return true;
+        }
+        false
+    }
 }
 
 /// Open usbfs handle with interface 3 claimed. One per device incarnation.
@@ -533,5 +603,21 @@ mod tests {
     #[test]
     fn permission_hint_names_the_fix() {
         assert!(PERMISSION_HINT.contains("install.sh") && PERMISSION_HINT.contains("replug"));
+    }
+}
+
+#[cfg(test)]
+mod stall_tests {
+    use super::*;
+
+    #[test]
+    fn parses_running_status() {
+        let text = "state: RUNNING\nowner_pid   : 1\n-----\nhw_ptr      : 8912784\nappl_ptr    : 8913664\n";
+        assert_eq!(parse_playback_status(text), (true, Some(8912784)));
+    }
+
+    #[test]
+    fn closed_stream_is_not_running() {
+        assert_eq!(parse_playback_status("closed\n"), (false, None));
     }
 }

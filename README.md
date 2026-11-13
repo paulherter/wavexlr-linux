@@ -70,6 +70,10 @@ The USB control protocol was worked out by the community. This project uses the 
 [OpenWave](https://github.com/rikkichy/openwave) and [OpenXLR](https://github.com/emaspa/openxlr) (no code taken).
 If you want a full mixer with routing and effects, use one of them.
 
+## AI disclosure
+This project was written with the help of AI tools. The code is reviewed and tested by the maintainer on real hardware
+before every release.
+
 ## For developers
 Build from source (needs Rust and the `alsa-lib` headers):
 ```sh

@@ -6,7 +6,7 @@ use crate::controller::Controller;
 use crate::ipc::{self, Command, DeviceInfoDto, LevelsDto, SettingsDto, Snapshot};
 use crate::protocol::Levels;
 use crate::settings;
-use crate::transport::Hardware;
+use crate::transport::{self, Hardware, StallWatch};
 use crate::tray::{Actions, ThemeWatch, Tray, TrayAction, TrayView};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::os::fd::AsRawFd;
@@ -304,6 +304,7 @@ struct Daemon {
     /// A setting changed since the last snapshot went out.
     settings_changed: bool,
     log: bool,
+    stall: StallWatch,
 }
 
 impl Daemon {
@@ -331,6 +332,11 @@ impl Daemon {
             Event::Tray(TrayAction::ToggleWindow) => self.window.toggle(),
             Event::Tray(TrayAction::OpenWindow) => self.window.open(),
             Event::Tray(TrayAction::SetMuted(on)) => self.controller.set_muted(on),
+            Event::Tray(TrayAction::Reconnect) => {
+                if let Err(error) = transport::reset_usb() {
+                    eprintln!("wavexlr: {error}");
+                }
+            }
             Event::Tray(TrayAction::Quit) => {
                 STOP.store(true, Ordering::Relaxed);
             }
@@ -370,6 +376,10 @@ impl Daemon {
             self.controller.restore_again(now);
         }
         self.controller.tick(now);
+        if self.stall.stalled(now) {
+            eprintln!("wavexlr: audio output stopped moving, reconnecting the device");
+            let _ = transport::reset_usb();
+        }
         self.window.running(); // reap a closed window
         if self.tray_wanted {
             self.check_tray(now);
@@ -481,6 +491,7 @@ pub fn run(options: Options) -> i32 {
         settings: autostart::read(),
         settings_changed: false,
         log: std::env::var_os("WAVEXLR_LOG").is_some(),
+        stall: StallWatch::default(),
     };
     let start = Instant::now();
     let mut resume = ResumeWatch::new();
